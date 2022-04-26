@@ -74,17 +74,6 @@ resource "aws_security_group" "web-sg" {
   }
 }
 
-resource "aws_db_instance" "example" {
-  identifier_prefix   = "terraform-up-and-running"
-  engine              = "mysql"
-  allocated_storage   = 10
-  instance_class      = "db.t2.micro"
-  name                = "learning"
-  username            = "foo"
-  password            = "foobarbaz"
-  skip_final_snapshot = true
-}
-
 output "web-address" {
   value = "${aws_instance.web.public_dns}:8080"
 }
