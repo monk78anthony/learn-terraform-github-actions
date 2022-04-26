@@ -88,7 +88,3 @@ resource "aws_db_instance" "example" {
 output "web-address" {
   value = "${aws_instance.web.public_dns}:8080"
 }
-
-output "dbname" {
-  value = "${aws_db_instance.example.db_instance_address}:3306"
-}
