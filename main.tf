@@ -1,12 +1,15 @@
+ines (52 sloc)  1.38 KB
+
+# ---------------------------------------------------------------------------------------------------------
+# REQUIRED PARAMETERS
+# You must provide a value for each of these parameters.
+# ------
+
 terraform {
   required_providers {
     aws = {
       source = "hashicorp/aws"
       version = "4.33.0"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "3.0.1"
     }
   }
   required_version = ">= 1.1.0"
@@ -24,56 +27,41 @@ provider "aws" {
   region = "us-east-1"
 }
 
-resource "random_pet" "sg" {}
+resource "aws_dynamodb_table" "apiv6-uat" { 
+   name = "apiv6-uat" 
+   billing_mode = "PROVISIONED" 
+   read_capacity = "10" 
+   write_capacity = "10"
+   hash_key = "band"
+   range_key = "title"
+   
+   attribute { 
+      name = "band" 
+      type = "S" 
+   } 
 
-data "aws_ami" "ubuntu" {
-  most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+   attribute {
+    name = "title"
+    type = "S"
   }
+  
+   ttl { 
+     enabled = true
+     attribute_name = "expiryPeriod"  
+   }
 
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"] # Canonical
+   point_in_time_recovery { enabled = false } 
+   server_side_encryption { enabled = true } 
+   
+   lifecycle { ignore_changes = [ write_capacity, read_capacity ] }
 }
 
-resource "aws_instance" "web" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = "t3.micro"
-  vpc_security_group_ids = [aws_security_group.web-sg.id]
-
-  user_data = <<-EOF
-              #!/bin/bash
-              apt-get update
-              apt-get install -y apache2
-              sed -i -e 's/80/8080/' /etc/apache2/ports.conf
-              echo "Fuck you world" > /var/www/html/index.html
-              systemctl restart apache2
-              EOF
+output "id" {
+  value       = aws_dynamodb_table.apiv6-uat.id
+  description = "The domain name of the load balancer"
 }
 
-resource "aws_security_group" "web-sg" {
-  name = "${random_pet.sg.id}-sg"
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  // connectivity to ubuntu mirrors is required to run `apt-get update` and `apt-get install apache2`
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-output "web-address" {
-  value = "${aws_instance.web.public_dns}:8080"
+output "arn" {
+  value       = aws_dynamodb_table.apiv6-uat.arn
+  description = "The domain name of the load balancer"
 }
